@@ -26,7 +26,10 @@ class MyHomePage extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (context) => BallProperties(0, 0, 0, 0),
+          create: (context) => SharedProps(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => PlPaddleProps(),
         ),
       ],
       child: Scaffold(
@@ -52,19 +55,21 @@ class MyHomePage extends StatelessWidget {
   }
 }
 
-class BallProperties extends ChangeNotifier {
-  double xAxis;
-  double yAxis;
-  double dX;
-  double dY;
+class SharedProps extends ChangeNotifier {
+  double botPaddleXAxis = 0;
+  final reduceSpeedBy = 2;
 
-  BallProperties(this.xAxis, this.yAxis, this.dX, this.dY);
+  void updateProperties(dX) {
+    this.botPaddleXAxis += dX / reduceSpeedBy;
+    notifyListeners();
+  }
+}
 
-  void updateProperties(xAxis, yAxis, dX, dY) {
+class PlPaddleProps extends ChangeNotifier {
+  double xAxis = 0;
+
+  void updateProperties(xAxis) {
     this.xAxis = xAxis;
-    this.yAxis = yAxis;
-    this.dX = dX;
-    this.dY = dY;
     notifyListeners();
   }
 }
@@ -101,8 +106,7 @@ class _BallState extends State<Ball> {
             ballHeight -
             kToolbarHeight -
             widget.paddingBottom) dY = -4;
-    Provider.of<BallProperties>(context, listen: false)
-        .updateProperties(xAxis, yAxis, dX, dY);
+    Provider.of<SharedProps>(context, listen: false).updateProperties(dX);
     setState(() {
       xAxis += dX;
       yAxis += dY;
@@ -135,12 +139,13 @@ class _BallState extends State<Ball> {
 class BotPaddle extends StatelessWidget {
   final double paddleHeight = 30;
   final double paddleWidth = 100;
+  final double reduceSpeedBy = 2;
   @override
   Widget build(BuildContext context) {
-    final ballProperties = Provider.of<BallProperties>(context, listen: true);
+    final sharedProps = Provider.of<SharedProps>(context, listen: true);
     return Positioned(
       top: 0,
-      left: ballProperties.xAxis / 2,
+      left: sharedProps.botPaddleXAxis,
       child: Draggable(
         axis: Axis.horizontal,
         child: Container(
@@ -172,10 +177,11 @@ class _PlayerPaddleState extends State<PlayerPaddle> {
   final double paddleWidth = 100;
   final double paddleHeight = 20;
 
-  @override
-  void initState() {
-    super.initState();
-    left = widget.screenWidth / 2 - paddleWidth / 2;
+  void onDrag(dX) {
+    setState(() {
+      left += dX;
+    });
+    Provider.of<PlPaddleProps>(context, listen: false).updateProperties(left);
   }
 
   @override
@@ -203,6 +209,9 @@ class _PlayerPaddleState extends State<PlayerPaddle> {
           ),
         ),
         childWhenDragging: Container(),
+        onDragUpdate: (updateDetails) {
+          onDrag(updateDetails.delta.dx);
+        },
       ),
     );
   }
