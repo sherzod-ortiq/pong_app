@@ -137,8 +137,8 @@ class Ball extends StatefulWidget {
 class _BallState extends State<Ball> {
   double xAxis = 0;
   double yAxis = 0;
-  double ballHeight = 50;
-  double ballWidth = 50;
+  double ballHeight = 30;
+  double ballWidth = 30;
   double dX = 0;
   double dY = 0;
 
@@ -211,9 +211,8 @@ class BotPaddle extends StatelessWidget {
         axis: Axis.horizontal,
         child: Container(
           width: 100,
-          height: 20,
+          height: 12,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
             color: Colors.purple,
           ),
         ),
@@ -237,7 +236,7 @@ class _PlayerPaddleState extends State<PlayerPaddle> {
   double bottom = 0;
   double left = 0;
   final double paddleWidth = 100;
-  final double paddleHeight = 20;
+  final double paddleHeight = 12;
 
   void onDrag(dX) {
     setState(() {
@@ -258,7 +257,6 @@ class _PlayerPaddleState extends State<PlayerPaddle> {
           width: paddleWidth,
           height: paddleHeight,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
             color: Colors.purple,
           ),
         ),
