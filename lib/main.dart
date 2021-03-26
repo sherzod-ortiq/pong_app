@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
@@ -9,20 +10,6 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Pong app',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-      ),
-      home: MyHomePage(),
-    );
-  }
-}
-
-class MyHomePage extends StatelessWidget {
-  final ticker = Ticker((elapsed) => print('hello'));
-  @override
-  Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
@@ -32,24 +19,50 @@ class MyHomePage extends StatelessWidget {
           create: (context) => PlPaddleProps(),
         ),
       ],
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text("Pong app"),
+      child: MaterialApp(
+        title: 'Pong app',
+        theme: ThemeData(
+          primarySwatch: Colors.green,
         ),
-        body: Stack(
-          alignment: Alignment.topLeft,
-          children: <Widget>[
-            BotPaddle(),
-            PlayerPaddle(
-              screenWidth: MediaQuery.of(context).size.width,
-            ),
-            Ball(
-              screenHeight: MediaQuery.of(context).size.height,
-              screenWidth: MediaQuery.of(context).size.width,
-              paddingBottom: MediaQuery.of(context).padding.bottom,
-            ),
-          ],
+        home: MyHomePage(),
+      ),
+    );
+  }
+}
+
+class MyHomePage extends StatelessWidget {
+  final ticker = Ticker((elapsed) => print('hello'));
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Consumer<SharedProps>(
+          builder: (context, sharedProps, child) {
+            return Text(
+              "Scores Player: ${sharedProps.pSc} Bot: ${sharedProps.bSc}",
+            );
+          },
         ),
+      ),
+      body: Stack(
+        alignment: Alignment.topLeft,
+        children: <Widget>[
+          BotPaddle(
+            paddleWidth: 100,
+          ),
+          PlayerPaddle(
+            screenWidth: MediaQuery.of(context).size.width,
+            paddleWidth: 100,
+          ),
+          Ball(
+            sharedProps: Provider.of<SharedProps>(context, listen: false),
+            plPaddleProps: Provider.of<PlPaddleProps>(context, listen: false),
+            screenHeight: MediaQuery.of(context).size.height,
+            screenWidth: MediaQuery.of(context).size.width,
+            paddingBottom: MediaQuery.of(context).padding.bottom,
+            paddleWidth: 100,
+          ),
+        ],
       ),
     );
   }
@@ -58,15 +71,41 @@ class MyHomePage extends StatelessWidget {
 class SharedProps extends ChangeNotifier {
   double botPaddleXAxis = 0;
   final reduceSpeedBy = 2;
+  int botScore = 0;
+  int playerScore = 0;
+
+  double get botPaddleX {
+    return botPaddleXAxis;
+  }
+
+  int get bSc {
+    return botScore;
+  }
+
+  int get pSc {
+    return playerScore;
+  }
 
   void updateProperties(dX) {
     this.botPaddleXAxis += dX / reduceSpeedBy;
     notifyListeners();
   }
+
+  void botUp() {
+    botScore += 1;
+  }
+
+  void playerUp() {
+    playerScore += 1;
+  }
 }
 
 class PlPaddleProps extends ChangeNotifier {
   double xAxis = 0;
+
+  double get plPaddleX {
+    return xAxis;
+  }
 
   void updateProperties(xAxis) {
     this.xAxis = xAxis;
@@ -78,11 +117,17 @@ class Ball extends StatefulWidget {
   final double screenWidth;
   final double screenHeight;
   final double paddingBottom;
+  final double paddleWidth;
+  final sharedProps;
+  final plPaddleProps;
 
   Ball({
     @required this.screenWidth,
     @required this.screenHeight,
     @required this.paddingBottom,
+    @required this.paddleWidth,
+    @required this.sharedProps,
+    @required this.plPaddleProps,
   });
 
   @override
@@ -97,26 +142,39 @@ class _BallState extends State<Ball> {
   double dX = 0;
   double dY = 0;
 
-  void moveBall() {
-    if (xAxis <= 0) dX = 4;
-    if (xAxis >= widget.screenWidth - ballWidth) dX = -4;
-    if (yAxis <= 0) dY = 4;
-    if (yAxis >=
-        widget.screenHeight -
-            ballHeight -
-            kToolbarHeight -
-            widget.paddingBottom) dY = -4;
-    Provider.of<SharedProps>(context, listen: false).updateProperties(dX);
-    setState(() {
-      xAxis += dX;
-      yAxis += dY;
-    });
-  }
-
   void initState() {
     super.initState();
     final ticker = Ticker((elapsed) => moveBall());
     ticker.start();
+  }
+
+  void moveBall() {
+    if (xAxis <= 0) dX = 4;
+    if (xAxis >= widget.screenWidth - ballWidth) dX = -4;
+    if (yAxis <= 0) {
+      if (xAxis >= widget.sharedProps.botPaddleX &&
+          xAxis <= widget.sharedProps.botPaddleX + widget.paddleWidth) {
+        widget.sharedProps.botUp();
+      }
+      dY = 4;
+    }
+    if (yAxis >=
+        widget.screenHeight -
+            ballHeight -
+            kToolbarHeight -
+            widget.paddingBottom) {
+      if (xAxis >= widget.plPaddleProps.plPaddleX &&
+          xAxis <= widget.plPaddleProps.plPaddleX + widget.paddleWidth) {
+        widget.sharedProps.playerUp();
+      }
+      dY = -4;
+    }
+
+    widget.sharedProps.updateProperties(dX);
+    setState(() {
+      xAxis += dX;
+      yAxis += dY;
+    });
   }
 
   @override
@@ -138,8 +196,11 @@ class _BallState extends State<Ball> {
 
 class BotPaddle extends StatelessWidget {
   final double paddleHeight = 30;
-  final double paddleWidth = 100;
   final double reduceSpeedBy = 2;
+  final double paddleWidth;
+
+  BotPaddle({this.paddleWidth});
+
   @override
   Widget build(BuildContext context) {
     final sharedProps = Provider.of<SharedProps>(context, listen: true);
@@ -164,8 +225,9 @@ class BotPaddle extends StatelessWidget {
 
 class PlayerPaddle extends StatefulWidget {
   final double screenWidth;
+  final double paddleWidth;
 
-  PlayerPaddle({this.screenWidth});
+  PlayerPaddle({this.screenWidth, this.paddleWidth});
 
   @override
   _PlayerPaddleState createState() => _PlayerPaddleState();
