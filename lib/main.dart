@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   runApp(MyApp());
@@ -22,25 +23,49 @@ class MyHomePage extends StatelessWidget {
   final ticker = Ticker((elapsed) => print('hello'));
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Pong app"),
-      ),
-      body: Stack(
-        alignment: Alignment.topLeft,
-        children: <Widget>[
-          BotPaddle(),
-          PlayerPaddle(
-            screenWidth: MediaQuery.of(context).size.width,
-          ),
-          Ball(
-            screenHeight: MediaQuery.of(context).size.height,
-            screenWidth: MediaQuery.of(context).size.width,
-            paddingBottom: MediaQuery.of(context).padding.bottom,
-          ),
-        ],
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => BallProperties(0, 0, 0, 0),
+        ),
+      ],
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text("Pong app"),
+        ),
+        body: Stack(
+          alignment: Alignment.topLeft,
+          children: <Widget>[
+            BotPaddle(),
+            PlayerPaddle(
+              screenWidth: MediaQuery.of(context).size.width,
+            ),
+            Ball(
+              screenHeight: MediaQuery.of(context).size.height,
+              screenWidth: MediaQuery.of(context).size.width,
+              paddingBottom: MediaQuery.of(context).padding.bottom,
+            ),
+          ],
+        ),
       ),
     );
+  }
+}
+
+class BallProperties extends ChangeNotifier {
+  double xAxis;
+  double yAxis;
+  double dX;
+  double dY;
+
+  BallProperties(this.xAxis, this.yAxis, this.dX, this.dY);
+
+  void updateProperties(xAxis, yAxis, dX, dY) {
+    this.xAxis = xAxis;
+    this.yAxis = yAxis;
+    this.dX = dX;
+    this.dY = dY;
+    notifyListeners();
   }
 }
 
@@ -60,10 +85,10 @@ class Ball extends StatefulWidget {
 }
 
 class _BallState extends State<Ball> {
-  double ballHeight = 50;
-  double ballWidth = 50;
   double xAxis = 0;
   double yAxis = 0;
+  double ballHeight = 50;
+  double ballWidth = 50;
   double dX = 0;
   double dY = 0;
 
@@ -76,7 +101,8 @@ class _BallState extends State<Ball> {
             ballHeight -
             kToolbarHeight -
             widget.paddingBottom) dY = -4;
-
+    Provider.of<BallProperties>(context, listen: false)
+        .updateProperties(xAxis, yAxis, dX, dY);
     setState(() {
       xAxis += dX;
       yAxis += dY;
@@ -106,20 +132,15 @@ class _BallState extends State<Ball> {
   }
 }
 
-class BotPaddle extends StatefulWidget {
-  @override
-  _BotPaddleState createState() => _BotPaddleState();
-}
-
-class _BotPaddleState extends State<BotPaddle> {
+class BotPaddle extends StatelessWidget {
   final double paddleHeight = 30;
   final double paddleWidth = 100;
-
   @override
   Widget build(BuildContext context) {
+    final ballProperties = Provider.of<BallProperties>(context, listen: true);
     return Positioned(
       top: 0,
-      left: 0,
+      left: ballProperties.xAxis / 2,
       child: Draggable(
         child: Container(
           width: 100,
