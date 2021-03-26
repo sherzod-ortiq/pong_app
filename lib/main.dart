@@ -142,6 +142,7 @@ class BotPaddle extends StatelessWidget {
       top: 0,
       left: ballProperties.xAxis / 2,
       child: Draggable(
+        axis: Axis.horizontal,
         child: Container(
           width: 100,
           height: 20,
@@ -150,14 +151,7 @@ class BotPaddle extends StatelessWidget {
             color: Colors.purple,
           ),
         ),
-        feedback: Container(
-          width: 100,
-          height: 20,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(100),
-            color: Colors.purple,
-          ),
-        ),
+        feedback: Container(),
       ),
     );
   }
