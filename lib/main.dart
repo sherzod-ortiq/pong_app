@@ -29,9 +29,7 @@ class MyHomePage extends StatelessWidget {
       body: Stack(
         alignment: Alignment.topLeft,
         children: <Widget>[
-          BotPaddle(
-              //screenWidth: MediaQuery.of(context).size.width,
-              ),
+          BotPaddle(),
           PlayerPaddle(
             screenWidth: MediaQuery.of(context).size.width,
           ),
